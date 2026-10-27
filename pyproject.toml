@@ -1,0 +1,31 @@
+[project]
+name = "maya-mac"
+version = "0.2.0"
+description = "Maya TTS inference engine for Apple Silicon (MPS) and CPU"
+readme = "README.md"
+authors = [
+    { name = "anurag", email = "anurag.maurya@scalerailabs.com" }
+]
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "aiohttp>=3.10",
+    "huggingface-hub>=1.0",
+    "numpy>=2.0",
+    "pyyaml>=6.0",
+    "safetensors>=0.6",
+    "scipy>=1.13",
+    "soundfile>=0.12",
+    "speechbrain==1.1.2",
+    "tokenizers>=0.22,<0.23",
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "transformers==5.6.2",
+]
+
+[project.scripts]
+maya = "maya_mac:main"
+maya-server = "maya_mac.server:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"

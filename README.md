@@ -28,7 +28,7 @@ This repo contains **code only**. The weights download from the original model r
 
 ```bash
 # pip (installs the prebuilt wheel from this repo):
-pip install "maya-mac @ https://huggingface.co/justanurag/maya-mac/resolve/main/dist/maya_mac-0.2.0-py3-none-any.whl"
+pip install "maya-mac @ https://huggingface.co/justanurag/maya-mac/resolve/main/dist/maya_mac-0.3.0-py3-none-any.whl"
 
 # or uv, straight from git (puts the `maya` command on your PATH):
 uv tool install --python 3.12 "maya-mac @ git+https://huggingface.co/justanurag/maya-mac"

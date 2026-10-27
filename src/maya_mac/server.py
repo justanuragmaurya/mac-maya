@@ -1237,7 +1237,10 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8080)
     ap.add_argument("--models", default=None, help="dir holding maya2-native/, mimi/, ecapa/ (default: Hugging Face "
                                                    "cache, downloaded on first run)")
-    ap.add_argument("--device", default=None, help="mps | cpu | cuda (default: best available)")
+    ap.add_argument("--device", default=None,
+                    help="mlx | mps | cpu | cuda (default: mlx when installed on Apple Silicon, else best available)")
+    ap.add_argument("--bits", type=int, choices=(8,), default=None,
+                    help="mlx: 8-bit weights for the backbone and depth decoder (~1.4x faster, ~3%% logit drift)")
     ap.add_argument("--max-pending", type=int, default=4,
                     help="max requests waiting for their first audio. Requests run one at a time, so each waiting "
                          "request waits for the ones before it")
@@ -1260,7 +1263,8 @@ def main(argv=None):
     def loader():
         from maya_mac.engine import MayaTTS
         from maya_mac.serving import ServingTTS
-        tts = ServingTTS(MayaTTS.from_pretrained(args.models, device=args.device))
+        bits = {"backbone_bits": args.bits, "depth_bits": args.bits} if args.bits else {}
+        tts = ServingTTS(MayaTTS.from_pretrained(args.models, device=args.device, **bits))
         log.info("engine on %s", tts.tts.device)
         if args.voices:
             load_voices_file(tts, args.voices)

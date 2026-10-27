@@ -1,9 +1,9 @@
 """Queued engine for the server: the interface maya_mac.server expects (upstream maya3.engine.Engine's), on top of
 MayaTTS.
 
-One worker thread owns the model and runs requests one at a time in arrival order (MayaTTS generates a single stream at
-about real time on Apple Silicon; there is no batching).  Voice registration also runs on that thread, between
-requests, so the GPU is only ever driven from one thread.
+One worker thread owns the model and runs requests one at a time in arrival order (MayaTTS generates a single stream,
+faster than real time on Apple Silicon with MLX; there is no batching).  Voice registration also runs on that
+thread, between requests, so the GPU is only ever driven from one thread.
 
     engine = ServingEngine(MayaTTS.from_pretrained())
     req = engine.submit("Hello there.", "en", "Ahana", on_event=lambda kind, payload: ...)
@@ -112,9 +112,12 @@ class ServingEngine:
         out = {"ready": self.failed is None and not self._stop, "failed": self.failed, "device": self.tts.device,
                "active": int(self._busy), "pending": pending, "max_seats": 1, **self.stats}
         try:
-            import torch
             if self.tts.device == "mps":
+                import torch
                 out["mem_alloc_gb"] = round(torch.mps.current_allocated_memory() / 1e9, 2)
+            elif self.tts.device == "mlx":
+                import mlx.core as mx
+                out["mem_alloc_gb"] = round(mx.get_active_memory() / 1e9, 2)
         except Exception:
             pass
         return out

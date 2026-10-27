@@ -15,14 +15,18 @@ def main(argv=None):
     ap.add_argument("--ref-text", help="transcript of the reference clip")
     ap.add_argument("--ref-lang", help="language of the reference clip (default: --lang)")
     ap.add_argument("--models", default=None, help="dir holding maya2-native/, mimi/, ecapa/ (default: Hugging Face cache)")
-    ap.add_argument("--device", default=None, help="mps | cpu | cuda (default: best available)")
+    ap.add_argument("--device", default=None,
+                    help="mlx | mps | cpu | cuda (default: mlx when installed on Apple Silicon, else best available)")
+    ap.add_argument("--bits", type=int, choices=(8,), default=None,
+                    help="mlx: 8-bit weights for the backbone and depth decoder (~1.4x faster, ~3%% logit drift)")
     ap.add_argument("--list-voices", action="store_true")
     a = ap.parse_args(argv)
 
     import soundfile as sf
     from maya_mac.engine import SR, MayaTTS
 
-    tts = MayaTTS.from_pretrained(a.models, device=a.device)
+    tts = MayaTTS.from_pretrained(a.models, device=a.device, **({"backbone_bits": a.bits, "depth_bits": a.bits}
+                                                               if a.bits else {}))
     print(f"loaded on {tts.device} in {tts.load_s:.1f}s")
     if a.list_voices:
         print("\n".join(tts.voices))

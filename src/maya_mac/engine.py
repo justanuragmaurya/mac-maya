@@ -78,6 +78,18 @@ def resolve_models(models_dir=None):
     return out
 
 
+def mlx_available():
+    import platform
+    import sys
+    if sys.platform != "darwin" or platform.machine() != "arm64":
+        return False
+    try:
+        import mlx.core  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def default_device():
     if torch.backends.mps.is_available():
         return "mps"
@@ -106,6 +118,9 @@ class EngineConfig:
     chunk_s: float = 20.0                # long text is split into pieces of about this many seconds
     stream_frames: int = 3               # frames per streamed audio chunk (240 ms)
     codec_device: str = "cpu"            # Mimi decode/encode device
+    backend: str = "auto"                # auto (mlx when installed on Apple Silicon, else torch) | mlx | torch
+    backbone_bits: int | None = None     # mlx only: 8 | 4 = quantized backbone weights (None: backbone_dtype)
+    depth_bits: int | None = None        # mlx only: 8 | 4 = quantized depth decoder weights (None: depth_dtype)
     warmup: bool = True                  # run a short generation at load
     seed: int = 20261024
     guards: G.GuardConfig = dataclasses.field(default_factory=G.GuardConfig)
@@ -282,9 +297,16 @@ class MayaTTS:
     @classmethod
     def from_pretrained(cls, models_dir=None, device=None, **config):
         """Weights come from the Hugging Face cache (downloaded on first use, ~5.5 GB), or from models_dir /
-        $MAYA_MODEL_DIR holding maya2-native/, mimi/ and ecapa/. config: EngineConfig fields."""
+        $MAYA_MODEL_DIR holding maya2-native/, mimi/ and ecapa/. config: EngineConfig fields.
+        device "mlx" (or backend="mlx") selects the MLX engine; with backend "auto" and no device it is used whenever
+        MLX is installed on Apple Silicon, and an explicit torch device (mps | cpu | cuda) selects the torch engine."""
         d = resolve_models(models_dir)
-        return cls(d["maya2-native"], d["mimi"], d["ecapa"], device=device, config=EngineConfig(**config))
+        cfg = EngineConfig(**config)
+        if cls is MayaTTS:
+            if device == "mlx" or cfg.backend == "mlx" or (cfg.backend == "auto" and device is None and mlx_available()):
+                from maya_mac.mlx_engine import MayaMLX
+                cls = MayaMLX
+        return cls(d["maya2-native"], d["mimi"], d["ecapa"], device=device, config=cfg)
 
     # ------------------------------------------------------------------ voices
     @property
